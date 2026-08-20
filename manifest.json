@@ -1,0 +1,21 @@
+{
+  "name": "تاجر - إدارة المخزون والمبيعات",
+  "short_name": "تاجر",
+  "lang": "ar",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f3f5f7",
+  "theme_color": "#17202a",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

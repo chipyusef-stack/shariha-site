@@ -1,2 +1,10 @@
-# shariha-site
-Public hosting for شريحه (static PWA) — public copy to serve via raw.githack/GitHub Pages
+# شريحه
+
+تطبيق تاجر — إدارة المخزون والمبيعات (PWA)
+
+## تشغيل محلي
+- شغّل: `python3 -m http.server 8000`
+- افتح: `http://localhost:8000`
+
+## ملاحظات
+- للتثبيت كـ PWA افتح الموقع في متصفح يدعم Add to Home screen.

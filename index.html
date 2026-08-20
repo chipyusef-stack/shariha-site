@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>تاجر — إدارة المخزون والمبيعات</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#17202a">
+<style>
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+ margin:0;
+ background:#f3f5f7;
+ font-family:Arial,Tahoma,sans-serif;
+ color:#222;
+ direction:rtl;
+}
+header{
+ background:#17202a;
+ color:#fff;
+ padding:14px;
+ position:sticky;
+ top:0;
+ z-index:10
+}
+h1{font-size:20px;margin:0 0 10px}
+h2{margin-top:0}
+nav{
+ display:flex;
+ gap:6px;
+ overflow:auto;
+ padding-top:8px;
+}
+nav button{
+ border:0;
+ border-radius:8px;
+ padding:9px 12px;
+ background:#34495e;
+ color:#fff;
+ white-space:nowrap;
+ cursor:pointer;
+}
+main{
+ max-width:1200px;
+ margin:auto;
+ padding:14px
+}
+.page{display:none}
+.page.active{display:block}
+.card{
+ background:#fff;
+ border-radius:12px;
+ padding:14px;
+ margin-bottom:14px;
+ box-shadow:0 2px 8px #0001
+}
+.grid{
+ display:grid;
+ grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+ gap:10px
+}
+label{display:block;font-weight:bold;margin-bottom:5px}
+input,select,textarea{width:100%;padding:10px;border:1px solid #ccd1d1;border-radius:8px;font-size:16px}
+textarea{min-height:80px;resize:vertical}
+.field{margin-bottom:10px}
+.btn{border:0;border-radius:8px;padding:10px 14px;margin:3px;cursor:pointer}
+.primary{background:#2874a6;color:#fff}
+.ok{background:#239b56;color:#fff}
+.danger{background:#c0392b;color:#fff}
+.gray{background:#7f8c8d;color:#fff}
+.warn{background:#d68910;color:#fff}
+.dark{background:#34495e;color:#fff}
+.stat{background:#edf5fb;padding:14px;border-radius:10px}
+.stat b{display:block;font-size:21px;margin-top:6px}
+.table{overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:750px}
+th,td{padding:9px;border-bottom:1px solid #eee;text-align:right}
+th{background:#f1f3f4}
+.total{font-size:20px;font-weight:bold;background:#f1f3f4;padding:12px;border-radius:8px;margin-top:10px}
+.small{font-size:13px;color:#68737d}
+.notice{background:#fff8df;padding:10px;border-radius:8px;margin:10px 0}
+.login{max-width:430px;margin:40px auto}
+.detailBox{background:#f8fafb;border:1px solid #ddd;border-radius:10px;padding:12px;margin-top:10px}
+.productSalesBox{background:#fff;border:2px solid #2874a6;border-radius:12px;padding:14px;margin-top:15px}
+.expenseBox{background:#fff;border:2px solid #d68910;border-radius:12px;padding:14px;margin-top:15px}
+.invoiceHeader{background:#eef5fb;border-radius:10px;padding:12px;margin-bottom:10px}
+.redStat{background:#fdecea;padding:14px;border-radius:10px}
+.greenStat{background:#eaf7ee;padding:14px;border-radius:10px}
+.hide{display:none!important}
+tfoot td{font-weight:bold}
+.controls{display:flex;gap:8px;flex-wrap:wrap}
+@media (max-width:600px){nav button{padding:8px 10px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>📦 تاجر — إدارة المخزون والمبيعات</h1>
+  <div id="userBar" style="margin-top:8px;display:flex;gap:8px;align-items:center;justify-content:flex-end"></div>
+  <nav id="nav"></nav>
+</header>
+
+<main>
+<!-- LOGIN -->
+<section id="login" class="page active">
+  <div class="card login">
+    <h2>🔐 تسجيل الدخول</h2>
+    <div class="field"><label>اسم المستخدم</label><input id="loginUser" placeholder="owner أو emp1"></div>
+    <div class="field"><label>كلمة المرور</label><input id="loginPass" type="password"></div>
+    <div class="controls">
+      <button class="btn primary" onclick="login()">دخول</button>
+      <button class="btn gray" onclick="fillDemo()">تعبئة بيانات تجريبية</button>
+    </div>
+    <p class="small">المالك: owner / 1234<br>الموظف: emp1 / 1111</p>
+  </div>
+</section>
+
+<!-- HOME -->
+<section id="home" class="page">
+  <div class="grid">
+    <div class="stat">المنتجات<b id="statProducts">0</b></div>
+    <div class="stat">المخزون<b id="statStock">0</b></div>
+    <div class="stat">إجمالي المبيعات<b id="statSales">0 د.ل</b></div>
+    <div class="greenStat">إجمالي أرباح المبيعات<b id="statProfit">0 د.ل</b></div>
+    <div class="redStat">إجمالي المصروفات<b id="statExpenses">0 د.ل</b></div>
+    <div class="greenStat">صافي الربح<b id="statNetProfit">0 د.ل</b></div>
+  </div>
+
+  <div class="card">
+    <h3>📌 ملاحظة</h3>
+    <p>تكلفة اليوان يتم تحويلها إلى الدينار بسعر الصرف الحالي عند البيع فقط، ولا يتم تغيير تكلفة عمليات البيع السابقة.</p>
+  </div>
+</section>
+
+<!-- PRODUCTS (owner only) -->
+<section id="products" class="page owner employee">
+  <div class="card">
+    <h2>📦 إضافة/تعديل منتج</h2>
+    <div class="grid">
+      <div class="field"><label>كود المنتج</label><input id="pCode"></div>
+      <div class="field"><label>اسم المنتج</label><input id="pName"></div>
+      <div class="field"><label>سعر الشراء باليوان ¥</label><input id="pCny" type="number" step="0.01"></div>
+      <div class="field"><label>الكمية</label><input id="pQty" type="number" value="1"></div>
+      <div class="field"><label>الربح % (اختياري)</label><input id="pMargin" type="number"></div>
+    </div>
+    <div class="controls">
+      <button class="btn primary" onclick="addOrUpdateProduct()">حفظ المنتج</button>
+      <button class="btn gray" onclick="clearProductForm()">مسح الحقول</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📋 المخزون</h2>
+    <div class="table" id="productsTable"></div>
+  </div>
+</section>
+
+<!-- SALES -->
+<section id="sales" class="page owner employee">
+  <div class="card">
+    <h2>🧾 فاتورة بيع</h2>
+    <div class="invoiceHeader">
+      <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+        <div>
+          <label>الزبون (اختياري)</label>
+          <input id="invCustomer" placeholder="اسم الزبون">
+        </div>
+        <div>
+          <label>سعر الصرف (¥ → د.ل)</label>
+          <input id="exchangeRate" type="number" step="0.0001" style="width:150px">
+        </div>
+        <div class="controls">
+          <button class="btn ok" onclick="applyExchangeRate()">حفظ سعر الصرف</button>
+          <button class="btn gray" onclick="setExchangeRatePrompt()">تعديل بسرعة</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>أضف بندًا إلى الفاتورة</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <select id="selProduct" style="min-width:240px"></select>
+        <input id="selQty" type="number" value="1" style="width:120px">
+        <button class="btn primary" onclick="addInvoiceItem()">أضف</button>
+      </div>
+      <div class="table" style="margin-top:12px" id="invoiceTableWrap"></div>
+
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center;justify-content:flex-end">
+        <button class="btn ok" onclick="finalizeSale()">إتمام البيع</button>
+        <button class="btn danger" onclick="clearInvoice()">إلغاء الفاتورة</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>سجل المبيعات</h2>
+    <div class="table" id="salesTable"></div>
+  </div>
+</section>
+
+<!-- EXPENSES -->
+<section id="expenses" class="page owner employee">
+  <div class="card">
+    <h2>💸 إضافة مصروف</h2>
+    <div class="grid">
+      <div class="field"><label>المبلغ (د.ل)</label><input id="expAmount" type="number" step="0.01"></div>
+      <div class="field"><label>الوصف</label><input id="expDesc"></div>
+    </div>
+    <button class="btn warn" onclick="addExpense()">أضف المصروف</button>
+  </div>
+
+  <div class="card">
+    <h2>سجل المصروفات</h2>
+    <div class="table" id="expensesTable"></div>
+  </div>
+</section>
+
+<!-- BACKUP -->
+<section id="backup" class="page owner employee">
+  <div class="card">
+    <h2>💾 نسخ احتياطي / استعادة</h2>
+    <div class="controls">
+      <button class="btn primary" onclick="exportData()">تصدير بيانات (نسخة احتياطية)</button>
+      <input id="importFile" type="file" accept="application/json" style="display:none" onchange="importFileChosen(event)">
+      <button class="btn ok" onclick="document.getElementById('importFile').click()">استيراد بيانات</button>
+      <button class="btn gray" onclick="clearAllData()">مسح كل البيانات (محلياً)</button>
+    </div>
+    <p class="small">الاستيراد يستبدل البيانات الحالية. احتفظ دائماً بنسخة احتياطية قبل المسح.</p>
+  </div>
+</section>
+
+</main>
+
+<script>
+/*
+  تطبيق "تاجر" — تخزين محلي + PWA-ready
+  مفاتيح التخزين: 'tajir_data', 'tajir_user'
+*/
+const STORAGE_KEY = 'tajir_data_v1';
+const USER_KEY = 'tajir_user_v1';
+let state = {
+  products: [],
+  sales: [],
+  expenses: [],
+  exchangeRate: 0.45  // مثال افتراضي: 1¥ = 0.45 د.ل — عدّل حسب حاجتك
+};
+let currentUser = null;
+let editingProductIndex = null;
+let invoiceItems = [];
+
+function saveState(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  renderAll();
+}
+function loadState(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(raw){
+    try{
+      state = JSON.parse(raw);
+    }catch(e){
+      console.error('فشل تحميل البيانات:', e);
+    }
+  }
+}
+function saveUser(){
+  localStorage.setItem(USER_KEY, JSON.stringify(currentUser));
+}
+function loadUser(){
+  const raw = localStorage.getItem(USER_KEY);
+  if(raw) currentUser = JSON.parse(raw);
+}
+
+function init(){
+  loadState();
+  loadUser();
+  setupNav();
+  if(currentUser){
+    showPage('home');
+    setUserBar();
+  } else {
+    showPage('login');
+  }
+  renderAll();
+  // register service worker
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+  }
+}
+function setupNav(){
+  const nav = document.getElementById('nav');
+  nav.innerHTML = '';
+  const pages = [
+    {id:'home',label:'الرئيسية'},
+    {id:'products',label:'المنتجات'},
+    {id:'sales',label:'المبيعات'},
+    {id:'expenses',label:'المصروفات'},
+    {id:'backup',label:'نسخ/استعادة'}
+  ];
+  pages.forEach(p=>{
+    const b = document.createElement('button');
+    b.textContent = p.label;
+    b.onclick = ()=> showPage(p.id);
+    nav.appendChild(b);
+  });
+}
+function setUserBar(){
+  const bar = document.getElementById('userBar');
+  bar.innerHTML = '';
+  if(currentUser){
+    const span = document.createElement('span');
+    span.textContent = currentUser.user + (currentUser.role==='owner'?' (المالك)':' (الموظف)');
+    span.style.marginLeft = '8px';
+    bar.appendChild(span);
+    const out = document.createElement('button');
+    out.className='btn gray';
+    out.textContent='تسجيل خروج';
+    out.onclick = ()=>{ currentUser=null; localStorage.removeItem(USER_KEY); showPage('login'); setUserBar(); renderAll();};
+    bar.appendChild(out);
+  }
+}
+
+function showPage(id){
+  document.querySelectorAll('.page').forEach(s=>s.classList.remove('active'));
+  const page = document.getElementById(id);
+  if(!page) return;
+  // role check
+  if(id==='products' && currentUser && currentUser.role!=='owner' && currentUser.role!=='employee'){
+    alert('لا تملك صلاحية الوصول لهذه الصفحة');
+    return;
+  }
+  page.classList.add('active');
+  // owner-only visibility
+  document.querySelectorAll('.owner').forEach(el=> el.style.display = (currentUser && currentUser.role==='owner') ? '' : (el.classList.contains('employee')? '':'' ));
+  document.querySelectorAll('.employee').forEach(el=> el.style.display = currentUser ? '' : 'none');
+  renderAll();
+}
+
+function login(){
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value.trim();
+  if(u==='owner' && p==='1234'){
+    currentUser={user:'owner',role:'owner'};
+  } else if(u==='emp1' && p==='1111'){
+    currentUser={user:'emp1',role:'employee'};
+  } else {
+    alert('بيانات غير صحيحة');
+    return;
+  }
+  saveUser();
+  setUserBar();
+  showPage('home');
+}
+
+// demo filler
+function fillDemo(){
+  state.products = [
+    {code:'P001',name:'هاتف ذكي',cny:500,qty:10,margin:20},
+    {code:'P002',name:'سماعة',cny:30,qty:50,margin:30},
+    {code:'P003',name:'كابل',cny:2,qty:200,margin:50}
+  ];
+  state.sales = [];
+  state.expenses = [];
+  state.exchangeRate = 0.45;
+  saveState();
+  alert('تم تعبئة بيانات تجريبية');
+}
+
+function addOrUpdateProduct(){
+  const code = document.getElementById('pCode').value.trim();
+  const name = document.getElementById('pName').value.trim();
+  const cny = parseFloat(document.getElementById('pCny').value) || 0;
+  const qty = parseInt(document.getElementById('pQty').value) || 0;
+  const margin = parseFloat(document.getElementById('pMargin').value) || 0;
+  if(!code || !name){ alert('أدخل كود واسم المنتج'); return; }
+  const existingIndex = state.products.findIndex(p=>p.code===code);
+  if(editingProductIndex!==null){
+    state.products[editingProductIndex] = {code,name,cny,qty,margin};
+    editingProductIndex = null;
+  } else if(existingIndex!==-1){
+    // إذا الكود موجود، نجمع الكميات بدل ثانية — أو نحدث حسب رغبة
+    if(!confirm('كود المنتج موجود مسبقاً. هل تريد تحديثه؟')) return;
+    state.products[existingIndex] = {code,name,cny,qty,margin};
+  } else {
+    state.products.push({code,name,cny,qty,margin});
+  }
+  clearProductForm();
+  saveState();
+}
+
+function clearProductForm(){
+  document.getElementById('pCode').value='';
+  document.getElementById('pName').value='';
+  document.getElementById('pCny').value='';
+  document.getElementById('pQty').value=1;
+  document.getElementById('pMargin').value='';
+  editingProductIndex = null;
+}
+
+function editProduct(idx){
+  const p = state.products[idx];
+  document.getElementById('pCode').value = p.code;
+  document.getElementById('pName').value = p.name;
+  document.getElementById('pCny').value = p.cny;
+  document.getElementById('pQty').value = p.qty;
+  document.getElementById('pMargin').value = p.margin;
+  editingProductIndex = idx;
+  showPage('products');
+}
+
+function deleteProduct(idx){
+  if(!confirm('هل تريد حذف المنتج؟')) return;
+  state.products.splice(idx,1);
+  saveState();
+}
+
+function renderProductsTable(){
+  const wrap = document.getElementById('productsTable');
+  if(state.products.length===0){ wrap.innerHTML = '<p class="small">لا توجد منتجات بعد.</p>'; return;}
+  let html = '<table><thead><tr><th>كود</th><th>اسم</th><th>سعر شراء (¥)</th><th>الكمية</th><th>هامش %</th><th>إجراءات</th></tr></thead><tbody>';
+  state.products.forEach((p,idx)=>{
+    html += `<tr>
+      <td>${p.code}</td>
+      <td>${p.name}</td>
+      <td>${(+p.cny).toFixed(2)}</td>
+      <td>${p.qty}</td>
+      <td>${p.margin||0}</td>
+      <td>
+        <button class="btn" onclick="editProduct(${idx})">تعديل</button>
+        <button class="btn danger" onclick="deleteProduct(${idx})">حذف</button>
+      </td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+function updateProductSelect(){
+  const sel = document.getElementById('selProduct');
+  sel.innerHTML = '';
+  state.products.forEach((p,idx)=>{
+    const opt = document.createElement('option');
+    opt.value = idx;
+    opt.textContent = `${p.name} — ${p.code} — ${p.qty} قطعة`;
+    sel.appendChild(opt);
+  });
+}
+
+function addInvoiceItem(){
+  const sel = document.getElementById('selProduct');
+  const idx = parseInt(sel.value);
+  if(isNaN(idx)){ alert('اختر منتج'); return; }
+  const qty = parseInt(document.getElementById('selQty').value) || 1;
+  const prod = state.products[idx];
+  if(qty <= 0){ alert('الكمية يجب أن تكون أكبر من صفر'); return; }
+  if(qty > prod.qty){ if(!confirm('الكمية المطلوبه أكبر من الموجود في المخزون. المتابعة؟')) return; }
+  // حساب سعر البيع بالدينار: سعر شراء (¥) × exchangeRate × (1 + margin/100)
+  const buyDinar = prod.cny * state.exchangeRate;
+  const pricePerUnit = buyDinar * (1 + (prod.margin||0)/100);
+  invoiceItems.push({
+    code: prod.code,
+    name: prod.name,
+    qty,
+    cny: prod.cny,
+    unitPrice: +pricePerUnit.toFixed(2)
+  });
+  renderInvoiceTable();
+}
+
+function renderInvoiceTable(){
+  const wrap = document.getElementById('invoiceTableWrap');
+  if(invoiceItems.length===0){ wrap.innerHTML = '<p class="small">لا توجد بنود في الفاتورة.</p>'; return; }
+  let html = '<table><thead><tr><th>الصنف</th><th>كمية</th><th>سعر الوحدة (د.ل)</th><th>المجموع</th><th>إجراءات</th></tr></thead><tbody>';
+  invoiceItems.forEach((it,idx)=>{
+    html += `<tr>
+      <td>${it.name}</td>
+      <td>${it.qty}</td>
+      <td>${it.unitPrice.toFixed(2)}</td>
+      <td>${(it.unitPrice*it.qty).toFixed(2)}</td>
+      <td><button class="btn danger" onclick="removeInvoiceItem(${idx})">حذف</button></td>
+    </tr>`;
+  });
+  const total = invoiceItems.reduce((s,i)=>s + i.unitPrice * i.qty,0);
+  html += `<tfoot><tr><td colspan="3">الإجمالي</td><td>${total.toFixed(2)} د.ل</td><td></td></tr></tfoot>`;
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+function removeInvoiceItem(i){ invoiceItems.splice(i,1); renderInvoiceTable(); }
+
+function finalizeSale(){
+  if(invoiceItems.length===0){ alert('لا توجد بنود'); return; }
+  // تحديث المخزون، تسجيل البيع
+  const total = invoiceItems.reduce((s,i)=>s + i.unitPrice * i.qty,0);
+  const profit = invoiceItems.reduce((s,i)=>{
+    const buyPerUnitDinar = i.cny * state.exchangeRate;
+    return s + (i.unitPrice - buyPerUnitDinar) * i.qty;
+  },0);
+  // خصم من المخزون
+  invoiceItems.forEach(it=>{
+    const prod = state.products.find(p => p.code === it.code);
+    if(prod){
+      prod.qty = Math.max(0, prod.qty - it.qty);
+    }
+  });
+  const sale = {
+    id: 'S' + Date.now(),
+    date: new Date().toISOString(),
+    customer: document.getElementById('invCustomer').value || '',
+    items: JSON.parse(JSON.stringify(invoiceItems)),
+    total: +total.toFixed(2),
+    profit: +profit.toFixed(2),
+    exchangeRate: state.exchangeRate
+  };
+  state.sales.push(sale);
+  invoiceItems = [];
+  saveState();
+  alert('تمت إضافة البيع');
+  showPage('sales');
+}
+
+function renderSalesTable(){
+  const wrap = document.getElementById('salesTable');
+  if(state.sales.length===0){ wrap.innerHTML = '<p class="small">لا توجد مبيعات بعد.</p>'; return; }
+  let html = '<table><thead><tr><th>رقم</th><th>التاريخ</th><th>الزبون</th><th>إجمالي (د.ل)</th><th>ربح (د.ل)</th><th>إجراءات</th></tr></thead><tbody>';
+  state.sales.slice().reverse().forEach(s=>{
+    html += `<tr>
+      <td>${s.id}</td>
+      <td>${(new Date(s.date)).toLocaleString()}</td>
+      <td>${s.customer||'-'}</td>
+      <td>${s.total.toFixed(2)}</td>
+      <td>${s.profit.toFixed(2)}</td>
+      <td><button class="btn" onclick='viewSale("${s.id}")'>عرض</button></td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+function viewSale(id){
+  const s = state.sales.find(x=>x.id===id);
+  if(!s) return;
+  let msg = `فاتورة: ${s.id}\nالتاريخ: ${new Date(s.date).toLocaleString()}\nالزبون: ${s.customer||'-'}\n\n`;
+  s.items.forEach(it=>{
+    msg += `${it.name} — ${it.qty} × ${it.unitPrice.toFixed(2)} = ${(it.qty*it.unitPrice).toFixed(2)}\n`;
+  });
+  msg += `\nالإجمالي: ${s.total.toFixed(2)} د.ل\nالربح: ${s.profit.toFixed(2)} د.ل`;
+  alert(msg);
+}
+
+function addExpense(){
+  const amt = parseFloat(document.getElementById('expAmount').value) || 0;
+  const desc = document.getElementById('expDesc').value.trim() || '';
+  if(amt<=0){ alert('أدخل مبلغ صحيح'); return; }
+  state.expenses.push({id:'E'+Date.now(),date:new Date().toISOString(),amount:+amt.toFixed(2),desc});
+  document.getElementById('expAmount').value=''; document.getElementById('expDesc').value='';
+  saveState();
+  alert('تمت إضافة المصروف');
+}
+
+function renderExpensesTable(){
+  const wrap = document.getElementById('expensesTable');
+  if(state.expenses.length===0){ wrap.innerHTML = '<p class="small">لا توجد مصروفات بعد.</p>'; return; }
+  let html = '<table><thead><tr><th>التاريخ</th><th>المبلغ (د.ل)</th><th>الوصف</th></tr></thead><tbody>';
+  state.expenses.slice().reverse().forEach(e=>{
+    html += `<tr><td>${(new Date(e.date)).toLocaleString()}</td><td>${e.amount.toFixed(2)}</td><td>${e.desc}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+function renderStats(){
+  document.getElementById('statProducts').textContent = state.products.length;
+  const totalStock = state.products.reduce((s,p)=>s + (p.qty || 0),0);
+  document.getElementById('statStock').textContent = totalStock;
+  const totalSales = state.sales.reduce((s,x)=>s + x.total,0);
+  const totalProfit = state.sales.reduce((s,x)=>s + x.profit,0);
+  const totalExpenses = state.expenses.reduce((s,x)=>s + x.amount,0);
+  document.getElementById('statSales').textContent = totalSales.toFixed(2) + ' د.ل';
+  document.getElementById('statProfit').textContent = totalProfit.toFixed(2) + ' د.ل';
+  document.getElementById('statExpenses').textContent = totalExpenses.toFixed(2) + ' د.ل';
+  document.getElementById('statNetProfit').textContent = (totalProfit - totalExpenses).toFixed(2) + ' د.ل';
+}
+
+function renderAll(){
+  renderProductsTable();
+  updateProductSelect();
+  renderInvoiceTable();
+  renderSalesTable();
+  renderExpensesTable();
+  renderStats();
+  document.getElementById('exchangeRate').value = state.exchangeRate;
+}
+
+function applyExchangeRate(){
+  const val = parseFloat(document.getElementById('exchangeRate').value);
+  if(isNaN(val) || val<=0){ alert('أدخل سعر صرف صحيح'); return;}
+  state.exchangeRate = val;
+  saveState();
+  alert('تم حفظ سعر الصرف');
+}
+
+function setExchangeRatePrompt(){
+  const val = prompt('أدخل سعر الصرف (د.ل لكل ¥):', state.exchangeRate);
+  if(val!==null){
+    const f = parseFloat(val);
+    if(!isNaN(f) && f>0){ state.exchangeRate=f; saveState(); } else alert('قيمة غير صحيحة');
+  }
+}
+
+// backup / restore
+function exportData(){
+  const data = {state,meta:{exportedAt:new Date().toISOString()}};
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `tajir_backup_${new Date().toISOString().slice(0,19)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importFileChosen(ev){
+  const f = ev.target.files[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = function(){
+    try{
+      const parsed = JSON.parse(reader.result);
+      if(!confirm('سيتم استبدال البيانات الحالية بالبيانات المستوردة. تابع؟')) return;
+      if(parsed.state) state = parsed.state;
+      else state = parsed;
+      saveState();
+      alert('تم الاستيراد');
+    }catch(e){ alert('ملف غير صالح'); console.error(e); }
+  };
+  reader.readAsText(f);
+  ev.target.value = '';
+}
+
+function importFileChosen(event){ // overloaded to ensure consistent name
+  const f = event.target.files[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = ()=> {
+    try{
+      const parsed = JSON.parse(reader.result);
+      if(!confirm('سيتم استبدال البيانات الحالية بالبيانات المستوردة. تابع؟')) return;
+      if(parsed.state) state = parsed.state;
+      else state = parsed;
+      saveState();
+      alert('تم الاستيراد بنجاح');
+    }catch(e){ alert('فشل الاستيراد: ملف غير صالح'); }
+  };
+  reader.readAsText(f);
+  event.target.value = '';
+}
+
+function clearAllData(){
+  if(!confirm('هل أنت متأكد من مسح كل البيانات محلياً؟ هذا لا يمكن التراجع عنه.')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(USER_KEY);
+  state = {products:[],sales:[],expenses:[],exchangeRate:state.exchangeRate||0.45};
+  currentUser = null;
+  showPage('login');
+  setUserBar();
+  renderAll();
+}
+
+window.addEventListener('load', init);
+</script>
+</body>
+</html>
